@@ -5,6 +5,7 @@ https://github.com/custom-components/wienerlinien
 """
 import logging
 from datetime import timedelta
+from typing import Optional
 
 import async_timeout
 import homeassistant.helpers.config_validation as cv
@@ -19,6 +20,7 @@ from custom_components.wienerlinien.const import BASE_URL, DEPARTURES
 CONF_STOPS = "stops"
 CONF_APIKEY = "apikey"
 CONF_FIRST_NEXT = "firstnext"
+CONF_NAME_DISPLAY = "displayname"
 
 SCAN_INTERVAL = timedelta(seconds=30)
 
@@ -27,6 +29,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
         vol.Optional(CONF_APIKEY): cv.string,
         vol.Optional(CONF_STOPS, default=None): vol.All(cv.ensure_list, [cv.string]),
         vol.Optional(CONF_FIRST_NEXT, default="first"): cv.string,
+        vol.Optional(CONF_NAME_DISPLAY, default="simple"): cv.string,
     }
 )
 
@@ -38,6 +41,7 @@ async def async_setup_platform(hass, config, add_devices_callback, discovery_inf
     """Setup."""
     stops = config.get(CONF_STOPS)
     firstnext = config.get(CONF_FIRST_NEXT)
+    displayname = config.get(CONF_NAME_DISPLAY)
     dev = []
     for stopid in stops:
         api = WienerlinienAPI(async_create_clientsession(hass), hass.loop, stopid)
@@ -46,19 +50,23 @@ async def async_setup_platform(hass, config, add_devices_callback, discovery_inf
             name = data["data"]["monitors"][0]["locationStop"]["properties"]["title"]
         except Exception:
             raise PlatformNotReady()
-        dev.append(WienerlinienSensor(api, name, firstnext))
+        dev.append(WienerlinienSensor(api, name, firstnext, displayname))
     add_devices_callback(dev, True)
 
 
 class WienerlinienSensor(Entity):
     """WienerlinienSensor."""
 
-    def __init__(self, api, name, firstnext):
+    def __init__(self, api, name, firstnext, displayname):
         """Initialize."""
         self.api = api
         self.firstnext = firstnext
+        self.displayname = displayname
         self._name = name
         self._state = None
+        self._icon = "train-car"
+        self._direction = ""
+
         self.attributes = {}
 
     async def async_update(self):
@@ -87,11 +95,27 @@ class WienerlinienSensor(Entity):
             else:
                 self._state = self._state
 
+            lineType = line["type"]
+            if "ptBus" in lineType:
+                self._icon = "bus"
+            elif "ptTram" in lineType:
+                self._icon = "tram"
+            elif "ptMetro" in lineType:
+                self._icon = "subway-variant"
+            else:
+                self._icon = "train-car"
+
+            self._direction = line["towards"]
+
             self.attributes = {
                 "destination": line["towards"],
                 "platform": line["platform"],
                 "direction": line["direction"],
+                "line": line["name"],
                 "name": line["name"],
+                "barrierFree": line["barrierFree"],
+                "realtimeSupported": line["realtimeSupported"],
+                "trafficJam": line["trafficjam"],
                 "countdown": departure["departureTime"]["countdown"],
             }
         except Exception:
@@ -100,7 +124,9 @@ class WienerlinienSensor(Entity):
     @property
     def name(self):
         """Return name."""
-        return DEPARTURES[self.firstnext]["name"].format(self._name)
+        return DEPARTURES[self.firstnext]["name"][self.displayname].format(
+            self._name, self._direction
+        )
 
     @property
     def state(self):
@@ -110,7 +136,7 @@ class WienerlinienSensor(Entity):
     @property
     def icon(self):
         """Return icon."""
-        return "mdi:bus"
+        return f"mdi:{self._icon}"
 
     @property
     def device_state_attributes(self):
