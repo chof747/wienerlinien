@@ -7,7 +7,6 @@ import logging
 from datetime import timedelta
 from typing import Optional
 
-import async_timeout
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.components.sensor import PLATFORM_SCHEMA
@@ -15,7 +14,8 @@ from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.entity import Entity
 
-from custom_components.wienerlinien.const import BASE_URL, DEPARTURES
+from custom_components.wienerlinien.const import DEPARTURES
+from custom_components.wienerlinien.api import WienerlinienAPI
 
 CONF_STOPS = "stops"
 CONF_APIKEY = "apikey"
@@ -42,30 +42,40 @@ async def async_setup_platform(hass, config, add_devices_callback, discovery_inf
     stops = config.get(CONF_STOPS)
     firstnext = config.get(CONF_FIRST_NEXT)
     displayname = config.get(CONF_NAME_DISPLAY)
+
     dev = []
     for stopid in stops:
         api = WienerlinienAPI(async_create_clientsession(hass), hass.loop, stopid)
         data = await api.get_json()
         try:
-            name = data["data"]["monitors"][0]["locationStop"]["properties"]["title"]
+            i = 0
+            for monitor in data["data"]["monitors"]:
+                name = f'{monitor["lines"][0]["name"]} {monitor["locationStop"]["properties"]["title"]}'
+                dev.append(
+                    WienerlinienSensor(api, name, i, firstnext, displayname, hass.bus)
+                )
+                i = i + 1
+
         except Exception:
             raise PlatformNotReady()
-        dev.append(WienerlinienSensor(api, name, firstnext, displayname))
+
     add_devices_callback(dev, True)
 
 
 class WienerlinienSensor(Entity):
     """WienerlinienSensor."""
 
-    def __init__(self, api, name, firstnext, displayname):
+    def __init__(self, api, name, monitor, firstnext, displayname, eventbus):
         """Initialize."""
         self.api = api
+        self.eventbus = eventbus
         self.firstnext = firstnext
         self.displayname = displayname
         self._name = name
         self._state = None
         self._icon = "train-car"
         self._direction = ""
+        self.monitor = monitor
 
         self.attributes = {}
 
@@ -84,42 +94,71 @@ class WienerlinienSensor(Entity):
         if data is None:
             return
         try:
-            line = data["monitors"][0]["lines"][0]
+            line = data["monitors"][self.monitor]["lines"][0]
             departure = line["departures"]["departure"][
                 DEPARTURES[self.firstnext]["key"]
             ]
-            if "timeReal" in departure["departureTime"]:
-                self._state = departure["departureTime"]["timeReal"]
-            elif "timePlanned" in departure["departureTime"]:
-                self._state = departure["departureTime"]["timePlanned"]
-            else:
-                self._state = self._state
 
-            lineType = line["type"]
-            if "ptBus" in lineType:
-                self._icon = "bus"
-            elif "ptTram" in lineType:
-                self._icon = "tram"
-            elif "ptMetro" in lineType:
-                self._icon = "subway-variant"
-            else:
-                self._icon = "train-car"
-
+            self.setState(departure)
+            self.setIcon(line["type"])
             self._direction = line["towards"]
-
             self.attributes = {
                 "destination": line["towards"],
                 "platform": line["platform"],
                 "direction": line["direction"],
                 "line": line["name"],
-                "name": line["name"],
                 "barrierFree": line["barrierFree"],
                 "realtimeSupported": line["realtimeSupported"],
                 "trafficJam": line["trafficjam"],
                 "countdown": departure["departureTime"]["countdown"],
             }
+
+            self.checkEventTriggers()
         except Exception:
             pass
+
+    def setState(self, departure):
+        """Get the right time signal depending on the available signals"""
+        if "timeReal" in departure["departureTime"]:
+            self._state = departure["departureTime"]["timeReal"]
+        elif "timePlanned" in departure["departureTime"]:
+            self._state = departure["departureTime"]["timePlanned"]
+        else:
+            self._state = self._state
+
+    def setIcon(self, lineType):
+        """Determines the icon type based on the typecode of the vehicle"""
+        if "ptBus" in lineType:
+            self._icon = "bus"
+        elif "ptTram" in lineType:
+            self._icon = "tram"
+        elif "ptMetro" in lineType:
+            self._icon = "subway-variant"
+        else:
+            self._icon = "train-car"
+
+    def checkEventTriggers(self):
+        """Evaluate the state and attribute of the sensor to check if any events need to be fired"""
+        self.checkForTrafficJam()
+        self.checkForNewArrival()
+
+    def checkForTrafficJam(self):
+        """Check if the sensor reports a traffic jam and send a warning"""
+        if self.attributes["trafficJam"]:
+            self.eventbus.fire(
+                "wienerlinien_traffic_jam",
+                {
+                    "line": self.attributes["line"],
+                    "direction": self._direction,
+                    "station": self._name,
+                    "expected": self._state,
+                },
+            )
+        pass
+
+    def checkForNewArrival(self):
+        """Check if the new arrival time has changed and trigger event"""
+        pass
 
     @property
     def name(self):
@@ -147,26 +186,3 @@ class WienerlinienSensor(Entity):
     def device_class(self):
         """Return device_class."""
         return "timestamp"
-
-
-class WienerlinienAPI:
-    """Call API."""
-
-    def __init__(self, session, loop, stopid):
-        """Initialize."""
-        self.session = session
-        self.loop = loop
-        self.stopid = stopid
-
-    async def get_json(self):
-        """Get json from API endpoint."""
-        value = None
-        url = BASE_URL.format(self.stopid)
-        try:
-            async with async_timeout.timeout(10, loop=self.loop):
-                response = await self.session.get(url)
-                value = await response.json()
-        except Exception:
-            pass
-
-        return value

@@ -1,6 +1,7 @@
 # Get information about next departures
 
 A sensor platform which allows you to get information about next departure from specified stop.
+The component is utilizing the [Open Data Rest API of Wiener Linien](https://www.wienerlinien.at/ogd_realtime/doku/ogd/wienerlinien-echtzeitdaten-dokumentation.pdf)
 
 To get started install this with [HACS](https://hacs.xyz/)
 
