@@ -6,7 +6,6 @@ logger:
 
 debugpy:
 
-
 sensor:
   - platform: wienerlinien
     stops: '4429'
