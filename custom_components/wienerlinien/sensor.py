@@ -74,6 +74,7 @@ class WienerlinienSensor(Entity):
         self._name = name
         self._state = None
         self._icon = "train-car"
+        self._direction = ""
 
         self.attributes = {}
 
@@ -104,11 +105,15 @@ class WienerlinienSensor(Entity):
                 self._state = self._state
 
             self.setIcon(line["type"])
+            self._direction = line["towards"]
             self.attributes = {
                 "destination": line["towards"],
                 "platform": line["platform"],
                 "direction": line["direction"],
                 "line": line["name"],
+                "barrierFree": line["barrierFree"],
+                "realtimeSupported": line["realtimeSupported"],
+                "trafficJam": line["trafficjam"],
                 "countdown": departure["departureTime"]["countdown"],
             }
         except Exception:
@@ -139,8 +144,8 @@ class WienerlinienSensor(Entity):
 
     @property
     def entity_picture(self):
-        if self.attributes["name"] in METRO_LINES:
-            return f"{ICONS_URL}/{self.attributes['name']}.svg"
+        if self.attributes["line"] in METRO_LINES:
+            return f"{ICONS_URL}/{self.attributes['line']}.svg"
         else:
             return f"{ICONS_URL}/{self._icon}.svg"
 
