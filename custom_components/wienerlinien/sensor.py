@@ -4,10 +4,8 @@ For more details about this component, please refer to the documentation at
 https://github.com/custom-components/wienerlinien
 """
 import logging
-import requests
 from datetime import timedelta
-import os
-import async_timeout
+
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.components.sensor import PLATFORM_SCHEMA
@@ -15,8 +13,8 @@ from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.entity import Entity
 
+from custom_components.wienerlinien.api import WienerlinienAPI
 from custom_components.wienerlinien.const import (
-    BASE_URL,
     DEPARTURES,
     ICONS_URL,
     ICONS_PATH,
@@ -97,13 +95,8 @@ class WienerlinienSensor(Entity):
             departure = line["departures"]["departure"][
                 DEPARTURES[self.firstnext]["key"]
             ]
-            if "timeReal" in departure["departureTime"]:
-                self._state = departure["departureTime"]["timeReal"]
-            elif "timePlanned" in departure["departureTime"]:
-                self._state = departure["departureTime"]["timePlanned"]
-            else:
-                self._state = self._state
 
+            self.setState(departure)
             self.setIcon(line["type"])
             self._direction = line["towards"]
             self.attributes = {
@@ -118,6 +111,15 @@ class WienerlinienSensor(Entity):
             }
         except Exception:
             pass
+
+    def setState(self, departure):
+        """Get the right time signal depending on the available signals"""
+        if "timeReal" in departure["departureTime"]:
+            self._state = departure["departureTime"]["timeReal"]
+        elif "timePlanned" in departure["departureTime"]:
+            self._state = departure["departureTime"]["timePlanned"]
+        else:
+            self._state = self._state
 
     def setIcon(self, lineType):
         """Determines the icon type based on the typecode of the vehicle"""
@@ -158,26 +160,3 @@ class WienerlinienSensor(Entity):
     def device_class(self):
         """Return device_class."""
         return "timestamp"
-
-
-class WienerlinienAPI:
-    """Call API."""
-
-    def __init__(self, session, loop, stopid):
-        """Initialize."""
-        self.session = session
-        self.loop = loop
-        self.stopid = stopid
-
-    async def get_json(self):
-        """Get json from API endpoint."""
-        value = None
-        url = BASE_URL.format(self.stopid)
-        try:
-            async with async_timeout.timeout(10, loop=self.loop):
-                response = await self.session.get(url)
-                value = await response.json()
-        except Exception:
-            pass
-
-        return value
