@@ -8,14 +8,14 @@ repos:
           - "--py37-plus"
 
   - repo: https://github.com/psf/black
-     rev: 22.3.1
-     hooks:
-      - id: black
-        stages: [manual]
-        args:
-          - --safe
-          - --quiet
-        files: ^((custom_components|script|tests)/.+)?[^/]+\.py$
+    rev: 22.3.1
+    hooks:
+     - id: black
+       stages: [manual]
+       args:
+         - --safe
+         - --quiet
+       files: ^((custom_components|script|tests)/.+)?[^/]+\.py$
 
   - repo: https://github.com/codespell-project/codespell
     rev: v1.17.1
