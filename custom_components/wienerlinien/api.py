@@ -23,6 +23,7 @@ class WienerlinienAPI:
         try:
             async with async_timeout.timeout(10):
                 response = await self.session.get(url)
+                response.encoding = "utf-8-sig"
                 value = await response.json()
         except ClientConnectionError as err:
             _LOGGER.warning(err)
