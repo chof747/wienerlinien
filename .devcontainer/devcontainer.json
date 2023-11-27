@@ -1,6 +1,6 @@
 {
 	"name": "wienerlinien development",
-	"image": "ghcr.io/ludeeus/devcontainer/integration:stable",
+	"image": "mcr.microsoft.com/devcontainers/python:3.11-bullseye",
 	"context": "..",
 	"postCreateCommand": "make init",
 	"appPort": [
