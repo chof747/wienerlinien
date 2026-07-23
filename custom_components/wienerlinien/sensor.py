@@ -1,13 +1,29 @@
 """
 A integration that allows you to get information about next departure from specified stop.
+
 For more details about this component, please refer to the documentation at
 https://github.com/custom-components/wienerlinien
 """
+
 import logging
 from datetime import timedelta
 
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
+
+try:
+    from homeassistant.components.http import StaticPathConfig
+except ImportError:
+
+    class StaticPathConfig:  # type: ignore[no-redef]
+        """Compatibility wrapper for newer Home Assistant static path registration."""
+
+        def __init__(self, url_path, path, cache_headers=True):
+            self.url_path = url_path
+            self.path = path
+            self.cache_headers = cache_headers
+
+
 from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
@@ -54,7 +70,7 @@ async def async_setup_platform(hass, config, add_devices_callback, discovery_inf
         try:
             monIx = 0
             for monitor in data["data"]["monitors"]:
-                name = f'{monitor["locationStop"]["properties"]["title"]}'
+                name = f"{monitor['locationStop']['properties']['title']}"
                 dev.append(
                     WienerlinienSensor(
                         api, name, monIx, firstnext, hass.bus, evNewArrival
@@ -66,7 +82,13 @@ async def async_setup_platform(hass, config, add_devices_callback, discovery_inf
             raise PlatformNotReady()
     add_devices_callback(dev, True)
 
-    hass.http.register_static_path(ICONS_URL, hass.config.path(ICONS_PATH), True)
+    icons_path = hass.config.path(ICONS_PATH)
+    if hasattr(hass.http, "async_register_static_paths"):
+        await hass.http.async_register_static_paths(
+            [StaticPathConfig(ICONS_URL, icons_path, True)]
+        )
+    else:
+        hass.http.register_static_path(ICONS_URL, icons_path, True)
 
 
 class WienerlinienSensor(Entity):
