@@ -135,12 +135,13 @@ class WienerlinienSensor(Entity):
                 "destination": line["towards"],
                 "platform": line["platform"],
                 "direction": line["direction"],
+                "cooling": departure["vehicle"]["cooling"],
                 "name": line["name"],
                 "countdown": departure["departureTime"]["countdown"],
             }
             self.checkEventTriggers()
         except Exception as err:
-            _LOGGER.warn(err)
+            _LOGGER.warning(err)
             pass
 
     def setState(self, departure):
@@ -208,7 +209,7 @@ class WienerlinienSensor(Entity):
             return f"{ICONS_URL}/{self._icon}.svg"
 
     @property
-    def device_state_attributes(self):
+    def extra_state_attributes(self):
         """Return attributes."""
         return self.attributes
 
