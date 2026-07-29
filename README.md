@@ -5,6 +5,16 @@ A sensor platform which allows you to get information about next departure from 
 
 To get started install this with [HACS](https://hacs.xyz/)
 
+## Development
+
+Run tests in a local virtual environment so `pip`, `python`, and `pytest` all use the same interpreter:
+
+```bash
+make test
+```
+
+The first run creates `.venv/` and installs the test dependencies from `requirements.txt`.
+
 ## Example configuration.yaml
 
 ```yaml
@@ -24,6 +34,17 @@ sensor:
 | **stops (Required)**      | RBL stop ID's                |
 | **firstnext (Optional)**  | `first` or `next` departure. |
 | **newarrival (Optional)** | flag to trigger events of new arrival times |
+## Attributes
+
+The sensor exposes a few attributes from the open data interface for each departure/vehicle:
+| attribute | type | description |
+| --- | --- | --- |
+| **cooling** | `boolean` | `true` if the vehicle at that departure time is air conditioned |
+| **destination** | `string` | final stop of the vehicle |
+| **platform** | `string` | Identifier of the platform - if applicable |
+| **direction** | `string` | Identifier of the direction - usually one letter varies from line to line |
+| **name** | `string` | Name of the line (numbers for trams, number + letter for buses, U + number for metros) |
+| **countdown** | `number` | minutes until arrival |
 
 ## Events
 
@@ -46,4 +67,3 @@ This platform is using the [Wienerlinien API](http://www.wienerlinien.at) API to
 The icons used for the sensor are taken from the [official iconset of Wiener Linien on Open Data Austria](https://www.data.gv.at/katalog/dataset/fd3b5bee-bef4-4acd-8ea8-fc9d24aa024f)
 'Datenquelle: Stadt Wien – data.wien.gv.at'
 Lizenz (CC BY 3.0 AT)
-
