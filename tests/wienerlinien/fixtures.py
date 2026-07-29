@@ -4,6 +4,7 @@ import json
 import logging
 import pytest
 import re
+import copy
 from pytest_homeassistant_custom_component.common import load_fixture
 from pytest_homeassistant_custom_component.common import AsyncMock, Mock
 from pytest_homeassistant_custom_component.plugins import MagicMock
@@ -29,7 +30,7 @@ def provideStopFixture(url):
     stopid = int(stop_pattern.match(url)[1])
 
     response = Mock()
-    response.json = AsyncMock(return_value=getStopResponse(stopid))
+    response.json = AsyncMock(return_value=copy.deepcopy(getStopResponse(stopid)))
     return response
 
 

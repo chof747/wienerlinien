@@ -131,11 +131,12 @@ class WienerlinienSensor(Entity):
 
             self.setState(departure)
             self.setIcon(line["type"])
+            vehicle = departure.get("vehicle", {"cooling": False})
             self.attributes = {
                 "destination": line["towards"],
                 "platform": line["platform"],
                 "direction": line["direction"],
-                "cooling": departure["vehicle"]["cooling"],
+                "cooling": vehicle.get("cooling"),
                 "name": line["name"],
                 "countdown": departure["departureTime"]["countdown"],
             }

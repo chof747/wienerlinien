@@ -1,11 +1,13 @@
 {
   "domain": "wienerlinien",
   "name": "Wienerlinien",
-  "version": "1.0",
-  "documentation": "https://github.com/custom-components/wienerlinien",
+  "version": "1.0.0",
+  "documentation": "https://github.com/chof747/wienerlinien",
+  "issue_tracker": "https://github.com/chof747/wienerlinien/issues",
+  "integration_type": "service",
   "dependencies": [],
   "codeowners": [
-    "@ludeeus"
+    "@chof747"
   ],
   "requirements": [],
   "iot_class": "cloud_polling"

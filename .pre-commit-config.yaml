@@ -1,4 +1,13 @@
 repos:
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        language: system
+        entry: make test
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit, manual]
 
   - repo: https://github.com/asottile/pyupgrade
     rev: v2.6.2
@@ -12,7 +21,7 @@ repos:
     rev: 22.3.0
     hooks:
       - id: black
-        stages: [commit, manual]
+        stages: [pre-commit, manual]
         args:
           - --safe
           - --quiet
@@ -22,7 +31,7 @@ repos:
     rev: v1.17.1
     hooks:
       - id: codespell
-        stages: [commit, manual]
+        stages: [pre-commit, manual]
         args:
           - --quiet-level=2
           - --ignore-words-list=hass,ba,fo,mabe
@@ -31,12 +40,12 @@ repos:
     rev: v3.1.0
     hooks:
       - id: check-json
-        stages: [commit, manual]
+        stages: [pre-commit, manual]
       - id: requirements-txt-fixer
-        stages: [commit, manual]
+        stages: [pre-commit, manual]
       - id: check-ast
-        stages: [commit, manual]
+        stages: [pre-commit, manual]
       - id: mixed-line-ending
-        stages: [commit, manual]
+        stages: [pre-commit, manual]
         args:
           - --fix=lf
