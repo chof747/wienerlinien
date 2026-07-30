@@ -14,27 +14,19 @@ jobs:
     name: Home Assistant Check
     strategy:
       matrix:
-        python-version: [3.9]
+        python-version: [3.11]
     runs-on: ubuntu-latest
     steps:
     - name: "Get the repository content"
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: Enable version ${{ matrix.python-version }} of Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-
-    - uses: actions/cache@v2
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
+        cache: pip
     - name: Install dependencies
       run: |
-        sudo apt update
-        sudo apt install -y python-dev pkg-config libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libswscale-dev libavresample-dev libavfilter-dev
         make init
     - name: Install dependencies for custom_components
       run: |
