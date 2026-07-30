@@ -5,7 +5,9 @@
   "documentation": "https://github.com/chof747/wienerlinien",
   "issue_tracker": "https://github.com/chof747/wienerlinien/issues",
   "integration_type": "service",
-  "dependencies": [],
+  "dependencies": [
+    "http"
+  ],
   "codeowners": [
     "@chof747"
   ],
