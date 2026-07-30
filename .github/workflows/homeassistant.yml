@@ -27,7 +27,7 @@ jobs:
         cache: pip
     - name: Install dependencies
       run: |
-        make init
+        make requirements
     - name: Install dependencies for custom_components
       run: |
         for file in $(find custom_components/ -name "manifest.json"); do
