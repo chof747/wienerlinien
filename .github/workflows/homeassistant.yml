@@ -43,4 +43,4 @@ jobs:
         echo "Testing with this configuration:"
         cat configuration.yaml
         echo ""
-        hass --script check_config --config .
+        .venv/bin/hass --script check_config --config .
